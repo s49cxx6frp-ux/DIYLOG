@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIYLog</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:    #0a0f1e;
+    --navy2:   #0f1729;
+    --navy3:   #162040;
+    --navy4:   #1e2d54;
+    --cyan:    #00d4ff;
+    --cyan2:   #00a8cc;
+    --cyan3:   #007a99;
+    --amber:   #f59e0b;
+    --green:   #10b981;
+    --red:     #ef4444;
+    --slate:   #8899bb;
+    --slate2:  #5566aa;
+    --white:   #e8f0ff;
+    --mono:    'Share Tech Mono', monospace;
+    --display: 'Bebas Neue', sans-serif;
+    --body:    'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: var(--body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px),
+      linear-gradient(rgba(0,212,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.015) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #app { position: relative; z-index: 1; }
+
+  header {
+    background: linear-gradient(135deg, var(--navy2) 0%, var(--navy3) 100%);
+    border-bottom: 2px solid var(--cyan3);
+    padding: 0 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+
+  .logo {
+    font-family: var(--display);
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--slate);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .btn-primary { background: var(--cyan); color: var(--navy); font-weight: 700; }
+  .btn-primary:hover { background: var(--cyan2); }
+
+  .btn-ghost { background: transparent; color: var(--slate); border: 1px solid var(--navy4); }
+  .btn-ghost:hover { border-color: var(--cyan3); color: var(--cyan); }
+
+  .btn-danger {
+    background: transparent; color: var(--red); border: 1px solid rgba(239,68,68,0.3);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1px; padding: 7px 14px;
+    border-radius: 4px; cursor: pointer; transition: all 0.15s; text-transform: uppercase;
+  }
+  .btn-danger:hover { background: rgba(239,68,68,0.1); border-color: var(--red); }
+
+  /* DASHBOARD */
+  .dashboard { max-width: 900px; margin: 0 auto; padding: 20px 16px 0; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+
+  .stat-card {
+    background: var(--navy2); border: 1px solid var(--navy4);
+    border-radius: 6px; padding: 16px; position: relative; overflow: hidden;
+  }
+  .stat-card::before { content:''; position:absolute; top:0;left:0;right:0; height:2px; }
+  .stat-card.savings::before   { background: var(--green); }
+  .stat-card.potential::before { background: var(--amber); }
+  .stat-card.total::before     { background: var(--cyan); }
+
+  .stat-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--slate); text-transform:uppercase; margin-bottom:8px; }
+  .stat-value { font-family:var(--display); font-size:36px; line-height:1; letter-spacing:1px; }
+  .stat-card.savings .stat-value   { color: var(--green); }
+  .stat-card.potential .stat-value { color: var(--amber); }
+  .stat-card.total .stat-value     { color: var(--cyan); }
+  .stat-sub { font-family:var(--mono); font-size:9px; color:var(--slate); margin-top:4px; }
+
+  .recent-strip {
+    background: var(--navy2); border: 1px solid var(--navy4); border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center;
+    gap: 12px; overflow-x: auto;
+  }
+  .recent-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--slate); text-transform:uppercase; white-space:nowrap; flex-shrink:0; }
+  .recent-items { display:flex; gap:8px; flex:1; }
+  .recent-chip {
+    background:var(--navy3); border:1px solid var(--navy4); border-radius:3px;
+    padding:5px 10px; font-size:11px; color:var(--white); white-space:nowrap;
+    cursor:pointer; transition:border-color 0.15s;
+  }
+  .recent-chip:hover { border-color:var(--cyan3); }
+  .chip-status { font-family:var(--mono); font-size:9px; margin-left:6px; }
+  .chip-status.active  { color: var(--cyan); }
+  .chip-status.done    { color: var(--green); }
+  .chip-status.planned { color: var(--slate); }
+
+  /* FILTERS */
+  .filters { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .filter-btn {
+    padding:5px 12px; border-radius:3px; font-family:var(--mono); font-size:10px;
+    letter-spacing:1px; cursor:pointer; border:1px solid var(--navy4); background:transparent;
+    color:var(--slate); transition:all 0.15s; text-transform:uppercase;
+  }
+  .filter-btn:hover { border-color:var(--cyan3); color:var(--cyan); }
+  .filter-btn.active { border-color:var(--cyan); color:var(--cyan); background:rgba(0,212,255,0.08); }
+  .filter-sep { width:1px; background:var(--navy4); margin:0 4px; }
+  .filter-row { display:flex; flex-wrap:wrap; gap:6px; }
+
+  /* PROJECTS */
+  .projects { max-width:900px; margin:0 auto; padding:0 16px 32px; }
+
+  .projects-empty { text-align:center; padding:60px 20px; color:var(--slate); font-family:var(--mono); font-size:13px; letter-spacing:1px; }
+  .projects-empty .empty-icon { font-size:40px; margin-bottom:12px; opacity:0.4; }
+
+  .project-card {
+    background:var(--navy2); border:1px solid var(--navy4);
+    border-radius:6px; margin-bottom:12px; overflow:hidden; transition:border-color 0.15s;
+  }
+  .project-card.expanded { border-color: var(--cyan3); }
+
+  .project-header {
+    display:flex; align-items:center; gap:12px;
+    padding:14px 16px; cursor:pointer; user-select:none;
+  }
+
+  .project-cat-icon {
+    width:36px; height:36px; border-radius:4px;
+    display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;
+  }
+  .cat-auto      { background:rgba(245,158,11,0.15); }
+  .cat-interior  { background:rgba(99,102,241,0.15); }
+  .cat-exterior  { background:rgba(16,185,129,0.15); }
+  .cat-elec      { background:rgba(239,68,68,0.15); }
+  .cat-landscape { background:rgba(0,212,255,0.12); }
+
+  .project-info { flex:1; min-width:0; }
+  .project-name { font-size:15px; font-weight:600; color:var(--white); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .project-meta { display:flex; gap:12px; margin-top:3px; font-family:var(--mono); font-size:10px; color:var(--slate); flex-wrap:wrap; }
+
+  .project-badges { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+
+  .badge { padding:3px 8px; border-radius:3px; font-family:var(--mono); font-size:9px; letter-spacing:1px; text-transform:uppercase; font-weight:700; }
+  .badge-active  { background:rgba(0,212,255,0.15);  color:var(--cyan);  border:1px solid rgba(0,212,255,0.3); }
+  .badge-done    { background:rgba(16,185,129,0.15); color:var(--green); border:1px solid rgba(16,185,129,0.3); }
+  .badge-planned { background:rgba(136,153,187,0.1); color:var(--slate); border:1px solid rgba(136,153,187,0.2); }
+  .badge-consideration { background:rgba(245,158,11,0.1); color:#f59e0b; border:1px solid rgba(245,158,11,0.25); }
+
+  .savings-badge { font-family:var(--mono); font-size:11px; color:var(--green); font-weight:700; }
+  .chevron { font-size:12px; color:var(--slate); transition:transform 0.2s; flex-shrink:0; }
+  .expanded .chevron { transform:rotate(90deg); }
+
+  .project-body { display:none; border-top:1px solid var(--navy4); }
+  .project-card.expanded .project-body { display:block; }
+
+  .project-tabs { display:flex; border-bottom:1px solid var(--navy4); background:var(--navy); }
+  .tab {
+    padding:8px 16px; font-family:var(--mono); font-size:10px; letter-spacing:1px;
+    color:var(--slate); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.15s; text-transform:uppercase;
+  }
+  .tab:hover { color:var(--white); }
+  .tab.active { color:var(--cyan); border-bottom-color:var(--cyan); }
+
+  .tab-content { display:none; padding:16px; }
+  .tab-content.active { display:block; }
+
+  .overview-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+  .field-group { margin-bottom:12px; }
+  .field-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--slate); text-transform:uppercase; margin-bottom:4px; }
+  .field-value { font-size:13px; color:var(--white); line-height:1.5; }
+
+  .cost-breakdown { background:var(--navy); border:1px solid var(--navy4); border-radius:4px; padding:12px; }
+  .cost-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:12px; }
+  .cost-row + .cost-row { border-top:1px solid var(--navy3); }
+  .cost-row.saved .cost-val { color:var(--green); font-weight:700; }
+  .cost-label { color:var(--slate); font-family:var(--mono); font-size:10px; letter-spacing:1px; }
+  .cost-val   { font-family:var(--mono); font-size:11px; color:var(--white); }
+
+  .photos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; margin-bottom:12px; }
+
+  .photo-thumb {
+    aspect-ratio:1; border-radius:4px; overflow:hidden; border:1px solid var(--navy4);
+    position:relative; cursor:pointer; background:var(--navy3);
+  }
+  .photo-thumb img { width:100%; height:100%; object-fit:cover; }
+  .photo-tag {
+    position:absolute; bottom:0; left:0; right:0; background:rgba(10,15,30,0.8);
+    font-family:var(--mono); font-size:8px; letter-spacing:1px; color:var(--slate);
+    padding:3px 5px; text-transform:uppercase;
+  }
+  .photo-tag.before { color:var(--amber); }
+  .photo-tag.after  { color:var(--green); }
+
+  .photo-add-btn {
+    aspect-ratio:1; border-radius:4px; border:1px dashed var(--navy4);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:pointer; background:transparent; color:var(--slate); font-family:var(--mono);
+    font-size:9px; letter-spacing:1px; gap:4px; transition:border-color 0.15s;
+  }
+  .photo-add-btn:hover { border-color:var(--cyan3); color:var(--cyan); }
+  .photo-add-btn .plus { font-size:20px; }
+
+  input[type="file"] { display:none; }
+
+  label.file-label {
+    display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:4px;
+    font-family:var(--mono); font-size:11px; letter-spacing:1px; cursor:pointer;
+    background:transparent; color:var(--slate); border:1px solid var(--navy4);
+    transition:all 0.15s; text-transform:uppercase;
+  }
+  label.file-label:hover { border-color:var(--cyan3); color:var(--cyan); }
+
+  .log-entry { display:flex; gap:12px; padding:10px 0; }
+  .log-entry + .log-entry { border-top:1px solid var(--navy3); }
+  .log-date { font-family:var(--mono); font-size:10px; color:var(--slate); white-space:nowrap; flex-shrink:0; padding-top:1px; min-width:80px; }
+  .log-text { font-size:13px; color:var(--white); line-height:1.5; flex:1; }
+
+  .log-form { display:flex; gap:8px; margin-top:12px; border-top:1px solid var(--navy4); padding-top:12px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(10,15,30,0.88); z-index:200;
+    display:none; align-items:flex-start; justify-content:center; padding:20px 16px; overflow-y:auto;
+  }
+  .modal-overlay.open { display:flex; }
+
+  .modal {
+    background:var(--navy2); border:1px solid var(--cyan3); border-radius:8px;
+    width:100%; max-width:560px; padding:24px; margin:auto;
+  }
+
+  .modal-title { font-family:var(--display); font-size:24px; letter-spacing:2px; color:var(--cyan); margin-bottom:20px; }
+
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-group { margin-bottom:14px; }
+  .form-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--slate); text-transform:uppercase; display:block; margin-bottom:5px; }
+
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; border-top:1px solid var(--navy4); padding-top:16px; }
+
+  .pro-rate-hint { font-family:var(--mono); font-size:9px; color:var(--cyan3); margin-top:4px; cursor:pointer; }
+  .pro-rate-hint:hover { color:var(--cyan); }
+
+  /* FORMS */
+  input, textarea, select {
+    background:var(--navy); border:1px solid var(--navy4); border-radius:4px;
+    color:var(--white); font-family:var(--body); font-size:13px; padding:8px 10px;
+    width:100%; transition:border-color 0.15s; outline:none;
+  }
+  input:focus, textarea:focus, select:focus { border-color:var(--cyan3); }
+  textarea { resize:vertical; min-height:70px; }
+  select option { background:var(--navy2); }
+
+  /* LIGHTBOX */
+  .lightbox { position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:300; display:none; align-items:center; justify-content:center; }
+  .lightbox.open { display:flex; }
+  .lightbox img { max-width:90vw; max-height:90vh; border-radius:4px; }
+  .lightbox-close { position:absolute; top:16px; right:16px; font-size:28px; color:var(--slate); cursor:pointer; line-height:1; }
+
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .section-title  { font-family:var(--mono); font-size:10px; letter-spacing:3px; color:var(--slate); text-transform:uppercase; }
+
+  @media (max-width:500px) {
+    .stats-row { grid-template-columns:1fr; }
+    .form-row  { grid-template-columns:1fr; }
+    .overview-grid { grid-template-columns:1fr; }
+    .stat-value { font-size:28px; }
+    .project-badges .savings-badge { display:none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span>🔧</span>
+        <div>DIYLOG<div class="logo-sub">PROJECT TRACKER</div></div>
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="openNewProjectModal()">+ NEW PROJECT</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="dashboard" id="dashboard"></div>
+
+  <div class="projects" id="projects-section">
+    <div class="section-header">
+      <span class="section-title">// PROJECTS</span>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div id="projects-list"></div>
+  </div>
+</div>
+
+<!-- New/Edit Project Modal -->
+<div class="modal-overlay" id="project-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">NEW PROJECT</div>
+
+    <div class="form-group">
+      <label class="form-label">Project Name</label>
+      <input type="text" id="f-name" placeholder="e.g. Front Brake Pad Replacement">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select id="f-cat">
+          <option value="auto">🚗 Auto</option>
+          <option value="interior">🏠 Home Interior</option>
+          <option value="exterior">🏡 Home Exterior</option>
+          <option value="elec">⚡ Electrical / Plumbing</option>
+          <option value="landscape">🌿 Landscaping / Outdoor</option>
+          <option value="other">📦 Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select id="f-status">
+          <option value="consideration">Under Consideration</option>
+          <option value="planned">Planned</option>
+          <option value="active">Active</option>
+          <option value="done">Complete</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Date Started</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date Completed</label>
+        <input type="date" id="f-date-end">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">My Cost ($)</label>
+        <input type="number" id="f-cost" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pro Would Charge ($)</label>
+        <input type="number" id="f-pro" placeholder="0.00" step="0.01">
+        <div class="pro-rate-hint" id="pro-hint" onclick="applyProHint()"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Description / Notes</label>
+      <textarea id="f-notes" placeholder="Parts used, tools needed, what you learned..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="modal-delete-btn" onclick="deleteCurrentProject()" style="display:none;">DELETE</button>
+      <button class="btn btn-ghost" onclick="closeModal()">CANCEL</button>
+      <button class="btn btn-primary" onclick="saveProject()">SAVE PROJECT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close">✕</span>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+const PRO_RATES = {
+  auto:      { 'Brake Pad': 250, 'Oil Change': 80, 'Tire Rotation': 50, 'Battery': 120, 'Alternator': 550, 'Default': 200 },
+  interior:  { 'Paint': 400, 'Floor': 800, 'Drywall': 300, 'Trim': 200, 'Default': 350 },
+  exterior:  { 'Paint': 900, 'Deck': 1200, 'Fence': 600, 'Gutter': 250, 'Default': 500 },
+  elec:      { 'Outlet': 150, 'Panel': 800, 'Faucet': 200, 'Toilet': 200, 'Default': 300 },
+  landscape: { 'Mow': 60, 'Mulch': 200, 'Tree': 300, 'Default': 150 },
+};
+
+const CAT_META = {
+  auto:          { label:'Auto',                 icon:'🚗', cls:'cat-auto' },
+  interior:      { label:'Home Interior',         icon:'🏠', cls:'cat-interior' },
+  exterior:      { label:'Home Exterior',         icon:'🏡', cls:'cat-exterior' },
+  elec:          { label:'Electrical / Plumbing', icon:'⚡', cls:'cat-elec' },
+  landscape:     { label:'Landscaping / Outdoor', icon:'🌿', cls:'cat-landscape' },
+  other:         { label:'Other',                 icon:'📦', cls:'cat-other' },
+};
+
+const STATUS_META = {
+  consideration: { label:'Consideration', cls:'badge-consideration' },
+  active:        { label:'Active',        cls:'badge-active' },
+  done:          { label:'Complete',      cls:'badge-done' },
+  planned:       { label:'Planned',       cls:'badge-planned' },
+};
+
+function load() {
+  try { return JSON.parse(localStorage.getItem('diylog_v1') || 'null') || { projects:[] }; }
+  catch(e) { return { projects:[] }; }
+}
+function save(d) { localStorage.setItem('diylog_v1', JSON.stringify(d)); }
+function uid()   { return 'p' + Date.now() + Math.random().toString(36).slice(2,6); }
+function fmtDate(s) { if (!s) return '—'; return new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function fmtMoney(n) { return '$' + (parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+
+let activeCatFilter    = 'all';
+let activeStatusFilter = 'all';
+let expandedProjects   = new Set();
+let activeTab          = {};
+let editingProjectId   = null;
+
+function renderAll() {
+  renderDashboard();
+  renderFilters();
+  renderProjects();
+}
+
+function renderDashboard() {
+  const { projects } = load();
+  const actualSaved    = projects.filter(p => p.status === 'done')
+    .reduce((s,p) => s + Math.max(0,(parseFloat(p.proRate)||0)-(parseFloat(p.cost)||0)), 0);
+  const potentialSaved = projects.filter(p => ['consideration','planned','active'].includes(p.status))
+    .reduce((s,p) => s + Math.max(0,(parseFloat(p.proRate)||0)-(parseFloat(p.cost)||0)), 0);
+  const activeCount = projects.filter(p => p.status === 'active').length;
+  const recent = [...projects].sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||'')).slice(0,5);
+
+  const recentHtml = recent.length
+    ? recent.map(p => `<div class="recent-chip" onclick="jumpToProject('${p.id}')">${p.name}<span class="chip-status ${p.status}">${STATUS_META[p.status]?.label||''}</span></div>`).join('')
+    : '<span style="font-size:11px;color:var(--slate);font-family:var(--mono)">NO PROJECTS YET</span>';
+
+  document.getElementById('dashboard').innerHTML = `
+    <div class="stats-row">
+      <div class="stat-card savings">
+        <div class="stat-label">// ACTUALLY SAVED</div>
+        <div class="stat-value">${fmtMoney(actualSaved)}</div>
+        <div class="stat-sub">completed projects vs. pro</div>
+      </div>
+      <div class="stat-card potential">
+        <div class="stat-label">// POTENTIAL SAVINGS</div>
+        <div class="stat-value">${fmtMoney(potentialSaved)}</div>
+        <div class="stat-sub">consideration + planned + active</div>
+      </div>
+      <div class="stat-card total">
+        <div class="stat-label">// TOTAL PROJECTS</div>
+        <div class="stat-value">${projects.length}</div>
+        <div class="stat-sub">${activeCount} active right now</div>
+      </div>
+    </div>
+    <div class="recent-strip">
+      <span class="recent-label">RECENT</span>
+      <div class="recent-items">${recentHtml}</div>
+    </div>
+  `;
+}
+
+function renderFilters() {
+  const cats     = ['all','auto','interior','exterior','elec','landscape','other'];
+  const statuses = ['all','consideration','active','planned','done'];
+
+  const catBtns    = cats.map(c    => `<button class="filter-btn ${activeCatFilter===c?'active':''}" onclick="setCatFilter('${c}')">${c==='all'?'ALL':CAT_META[c].label.toUpperCase()}</button>`).join('');
+  const statusBtns = statuses.map(s => `<button class="filter-btn ${activeStatusFilter===s?'active':''}" onclick="setStatusFilter('${s}')">${s==='all'?'ALL STATUS':STATUS_META[s].label.toUpperCase()}</button>`).join('');
+
+  document.getElementById('filters').innerHTML = 
+    `<div class="filter-row">${catBtns}</div><div class="filter-row">${statusBtns}</div>`;
+}
+
+function renderProjects() {
+  const data = load();
+  let projects = data.projects;
+  if (activeCatFilter !== 'all')    projects = projects.filter(p => p.category === activeCatFilter);
+  if (activeStatusFilter !== 'all') projects = projects.filter(p => p.status   === activeStatusFilter);
+
+  const order = {consideration:0, planned:1, active:2, done:3};
+  projects = [...projects].sort((a,b) => {
+    const od = (order[a.status]||9) - (order[b.status]||9);
+    return od !== 0 ? od : (b.startDate||'').localeCompare(a.startDate||'');
+  });
+
+  if (!projects.length) {
+    document.getElementById('projects-list').innerHTML = `<div class="projects-empty"><div class="empty-icon">📋</div>NO PROJECTS — HIT "NEW PROJECT" TO GET STARTED</div>`;
+    return;
+  }
+
+  document.getElementById('projects-list').innerHTML = projects.map(renderProjectCard).join('');
+}
+
+function renderProjectCard(p) {
+  const cat    = CAT_META[p.category]  || CAT_META.auto;
+  const status = STATUS_META[p.status] || STATUS_META.planned;
+  const saved  = Math.max(0,(parseFloat(p.proRate)||0)-(parseFloat(p.cost)||0));
+  const isExpanded = expandedProjects.has(p.id);
+  const curTab = activeTab[p.id] || 'overview';
+  const photoCount = (p.photos||[]).length;
+  const logCount   = (p.log||[]).length;
+  const savedBadge = saved > 0 ? `<span class="savings-badge">+${fmtMoney(saved)} SAVED</span>` : '';
+
+  const bodyHtml = isExpanded ? `
+    <div class="project-body">
+      <div class="project-tabs">
+        <div class="tab ${curTab==='overview'?'active':''}" onclick="setTab('${p.id}','overview');event.stopPropagation()">OVERVIEW</div>
+        <div class="tab ${curTab==='photos'?'active':''}"   onclick="setTab('${p.id}','photos');event.stopPropagation()">PHOTOS (${photoCount})</div>
+        <div class="tab ${curTab==='log'?'active':''}"      onclick="setTab('${p.id}','log');event.stopPropagation()">LOG (${logCount})</div>
+      </div>
+      ${renderOverviewTab(p,curTab)}
+      ${renderPhotosTab(p,curTab)}
+      ${renderLogTab(p,curTab)}
+    </div>` : '';
+
+  return `
+    <div class="project-card ${isExpanded?'expanded':''}" id="card-${p.id}">
+      <div class="project-header" onclick="toggleProject('${p.id}')">
+        <div class="project-cat-icon ${cat.cls}">${cat.icon}</div>
+        <div class="project-info">
+          <div class="project-name">${p.name}</div>
+          <div class="project-meta">
+            <span>${cat.label}</span>
+            ${p.startDate?`<span>${fmtDate(p.startDate)}</span>`:''}
+            ${p.cost?`<span style="color:var(--amber)">${fmtMoney(p.cost)} spent</span>`:''}
+          </div>
+        </div>
+        <div class="project-badges">
+          ${savedBadge}
+          <span class="badge ${status.cls}">${status.label}</span>
+          <span class="chevron">▶</span>
+        </div>
+      </div>
+      ${bodyHtml}
+    </div>`;
+}
+
+function renderOverviewTab(p, curTab) {
+  const cost    = parseFloat(p.cost)    || 0;
+  const proRate = parseFloat(p.proRate) || 0;
+  const saved   = Math.max(0, proRate - cost);
+  return `
+    <div class="tab-content ${curTab==='overview'?'active':''}" id="tab-overview-${p.id}">
+      <div class="overview-grid">
+        <div>
+          ${p.notes?`<div class="field-group"><div class="field-label">Notes</div><div class="field-value">${p.notes.replace(/\n/g,'<br>')}</div></div>`:''}
+          ${p.endDate?`<div class="field-group"><div class="field-label">${(p.status==='planned'||p.status==='consideration')?'Target Completion':'Completed'}</div><div class="field-value">${fmtDate(p.endDate)}</div></div>`:''}
+        </div>
+        <div>
+          <div class="cost-breakdown">
+            <div class="field-label" style="margin-bottom:8px">Cost Breakdown</div>
+            <div class="cost-row"><span class="cost-label">MY COST</span><span class="cost-val">${fmtMoney(cost)}</span></div>
+            <div class="cost-row"><span class="cost-label">PRO ESTIMATE</span><span class="cost-val">${proRate?fmtMoney(proRate):'—'}</span></div>
+            ${proRate?`<div class="cost-row saved"><span class="cost-label">SAVED</span><span class="cost-val">+${fmtMoney(saved)}</span></div>`:''}
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn btn-ghost" style="font-size:10px;padding:5px 10px;" onclick="openEditModal('${p.id}');event.stopPropagation()">✏ EDIT</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderPhotosTab(p, curTab) {
+  const photos = p.photos || [];
+  const thumbs = photos.map(ph => `
+    <div class="photo-thumb" onclick="openLightbox('${ph.data}');event.stopPropagation()">
+      <img src="${ph.data}" alt="">
+      <div class="photo-tag ${ph.type||''}">${(ph.type||'photo').toUpperCase()}</div>
+    </div>`).join('');
+
+  return `
+    <div class="tab-content ${curTab==='photos'?'active':''}" id="tab-photos-${p.id}">
+      <div class="photos-grid">
+        ${thumbs}
+        <label class="photo-add-btn" for="photo-input-${p.id}" onclick="event.stopPropagation()">
+          <span class="plus">+</span><span>ADD</span>
+        </label>
+      </div>
+      <input type="file" id="photo-input-${p.id}" accept="image/*" onchange="handlePhotoUpload('${p.id}',this,'general')" onclick="event.stopPropagation()">
+      <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;" onclick="event.stopPropagation()">
+        <label class="file-label" for="photo-before-${p.id}">📷 BEFORE</label>
+        <label class="file-label" for="photo-after-${p.id}">📷 AFTER</label>
+      </div>
+      <input type="file" id="photo-before-${p.id}" accept="image/*" onchange="handlePhotoUpload('${p.id}',this,'before')" onclick="event.stopPropagation()">
+      <input type="file" id="photo-after-${p.id}"  accept="image/*" onchange="handlePhotoUpload('${p.id}',this,'after')"  onclick="event.stopPropagation()">
+    </div>`;
+}
+
+function renderLogTab(p, curTab) {
+  const entries = [...(p.log||[])].sort((a,b) => b.date.localeCompare(a.date));
+  const logHtml = entries.length
+    ? entries.map(e=>`<div class="log-entry"><div class="log-date">${fmtDate(e.date)}</div><div class="log-text">${e.text.replace(/\n/g,'<br>')}</div><button onclick="deleteLogEntry('${p.id}','${e.id}');event.stopPropagation()" style="background:none;border:none;color:var(--slate);cursor:pointer;font-size:14px;padding:0 4px;flex-shrink:0;line-height:1" title="Delete entry">✕</button></div>`).join('')
+    : '<div style="font-family:var(--mono);font-size:10px;color:var(--slate);padding:8px 0">NO LOG ENTRIES YET</div>';
+
+  const today = new Date().toISOString().slice(0,10);
+  return `
+    <div class="tab-content ${curTab==='log'?'active':''}" id="tab-log-${p.id}">
+      ${logHtml}
+      <div class="log-form" onclick="event.stopPropagation()">
+        <div style="flex:1">
+          <input type="date" id="log-date-${p.id}" value="${today}" style="margin-bottom:6px">
+          <textarea id="log-text-${p.id}" placeholder="Add a log entry..."></textarea>
+        </div>
+        <button class="btn btn-primary" style="align-self:flex-end;white-space:nowrap;" onclick="addLogEntry('${p.id}')">+ ADD</button>
+      </div>
+    </div>`;
+}
+
+function toggleProject(id) {
+  expandedProjects.has(id) ? expandedProjects.delete(id) : expandedProjects.add(id);
+  renderProjects();
+}
+
+function jumpToProject(id) {
+  expandedProjects.add(id);
+  activeCatFilter = activeStatusFilter = 'all';
+  renderAll();
+  setTimeout(() => document.getElementById('card-'+id)?.scrollIntoView({behavior:'smooth',block:'start'}), 50);
+}
+
+function setTab(id, tab) { activeTab[id] = tab; renderProjects(); }
+function setCatFilter(c)    { activeCatFilter = c; renderFilters(); renderProjects(); }
+function setStatusFilter(s) { activeStatusFilter = s; renderFilters(); renderProjects(); }
+
+function openNewProjectModal() {
+  editingProjectId = null;
+  document.getElementById('modal-title').textContent = 'NEW PROJECT';
+  document.getElementById('modal-delete-btn').style.display = 'none';
+  ['f-name','f-notes'].forEach(id => document.getElementById(id).value = '');
+  ['f-cost','f-pro','f-date-end'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-cat').value    = 'auto';
+  document.getElementById('f-status').value = 'planned';
+  document.getElementById('f-date').value   = new Date().toISOString().slice(0,10);
+  updateProHint();
+  document.getElementById('project-modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const data = load();
+  const p = data.projects.find(x => x.id === id);
+  if (!p) return;
+  editingProjectId = id;
+  document.getElementById('modal-title').textContent = 'EDIT PROJECT';
+  document.getElementById('modal-delete-btn').style.display = 'inline-flex';
+  document.getElementById('f-name').value     = p.name || '';
+  document.getElementById('f-cat').value      = p.category || 'auto';
+  document.getElementById('f-status').value   = p.status || 'planned';
+  document.getElementById('f-date').value     = p.startDate || '';
+  document.getElementById('f-date-end').value = p.endDate || '';
+  document.getElementById('f-cost').value     = p.cost || '';
+  document.getElementById('f-pro').value      = p.proRate || '';
+  document.getElementById('f-notes').value    = p.notes || '';
+  updateProHint();
+  document.getElementById('project-modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('project-modal').classList.remove('open'); editingProjectId = null; }
+
+function saveProject() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  const data = load();
+  const project = {
+    id:        editingProjectId || uid(),
+    name,
+    category:  document.getElementById('f-cat').value,
+    status:    document.getElementById('f-status').value,
+    startDate: document.getElementById('f-date').value,
+    endDate:   document.getElementById('f-date-end').value,
+    cost:      document.getElementById('f-cost').value,
+    proRate:   document.getElementById('f-pro').value,
+    notes:     document.getElementById('f-notes').value.trim(),
+  };
+
+  if (editingProjectId) {
+    const idx = data.projects.findIndex(p => p.id === editingProjectId);
+    if (idx >= 0) {
+      project.photos = data.projects[idx].photos || [];
+      project.log    = data.projects[idx].log    || [];
+      data.projects[idx] = project;
+    }
+  } else {
+    project.photos = []; project.log = [];
+    data.projects.push(project);
+    expandedProjects.add(project.id);
+  }
+  save(data); closeModal(); renderAll();
+}
+
+function deleteCurrentProject() {
+  if (!editingProjectId || !confirm('Delete this project? This cannot be undone.')) return;
+  const data = load();
+  data.projects = data.projects.filter(p => p.id !== editingProjectId);
+  save(data); expandedProjects.delete(editingProjectId); closeModal(); renderAll();
+}
+
+function updateProHint() {
+  const cat  = document.getElementById('f-cat').value;
+  const name = document.getElementById('f-name').value;
+  const rates = PRO_RATES[cat] || {};
+  let hint = null;
+  for (const [key, val] of Object.entries(rates)) {
+    if (key !== 'Default' && name.toLowerCase().includes(key.toLowerCase())) { hint = val; break; }
+  }
+  if (!hint) hint = rates.Default || null;
+  const el = document.getElementById('pro-hint');
+  el._hint = hint;
+  el.textContent = hint ? `↑ Typical pro rate: ~${fmtMoney(hint)} — click to apply` : '';
+}
+
+function applyProHint() {
+  const el = document.getElementById('pro-hint');
+  if (el._hint) document.getElementById('f-pro').value = el._hint;
+}
+
+document.getElementById('f-name').addEventListener('input', updateProHint);
+document.getElementById('f-cat').addEventListener('change', updateProHint);
+
+function handlePhotoUpload(projectId, input, type) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const data = load();
+    const p = data.projects.find(x => x.id === projectId);
+    if (!p) return;
+    p.photos = p.photos || [];
+    p.photos.push({ id: uid(), data: e.target.result, type, date: new Date().toISOString().slice(0,10) });
+    save(data); renderProjects();
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function addLogEntry(projectId) {
+  const text = document.getElementById('log-text-'+projectId).value.trim();
+  const date = document.getElementById('log-date-'+projectId).value;
+  if (!text) return;
+  const data = load();
+  const p = data.projects.find(x => x.id === projectId);
+  if (!p) return;
+  p.log = p.log || [];
+  p.log.push({ id: uid(), date: date || new Date().toISOString().slice(0,10), text });
+  save(data); renderProjects();
+}
+
+function deleteLogEntry(projectId, entryId) {
+  if (!confirm('Delete this log entry?')) return;
+  const data = load();
+  const p = data.projects.find(x => x.id === projectId);
+  if (!p) return;
+  p.log = (p.log || []).filter(e => e.id !== entryId);
+  save(data); renderProjects();
+}
+
+function openLightbox(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox').classList.add('open'); }
+function closeLightbox()    { document.getElementById('lightbox').classList.remove('open'); }
+
+document.getElementById('project-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+// Seed data
+(function() {
+  const data = load();
+  if (data.projects.length > 0) return;
+  data.projects = [
+    {
+      id:'seed1', name:'Front Brake Pad Replacement', category:'auto', status:'done',
+      startDate:'2026-01-15', endDate:'2026-01-15', cost:'42', proRate:'250',
+      notes:'Wagner ThermoQuiet QC1324 pads. Caliper bolts torqued to 26 ft-lbs. Bedded in with 10 slow stops from 30mph.',
+      photos:[],
+      log:[
+        { id:'l1', date:'2026-01-15', text:'Ordered Wagner pads from Amazon. Picked up caliper compression tool from AutoZone.' },
+        { id:'l2', date:'2026-01-15', text:'Job complete. ~90 min. Front rotors still good, no resurfacing needed.' },
+      ]
+    },
+    {
+      id:'seed2', name:'Deck Staining', category:'exterior', status:'planned',
+      startDate:'2026-04-01', endDate:'', cost:'120', proRate:'800',
+      notes:'Cabot Australian Timber Oil. Sand first. Needs temps above 50°F.',
+      photos:[], log:[]
+    },
+  ];
+  save(data);
+})();
+
+// Kill any stale service workers and caches
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+}
+
+renderAll();
+</script>
+</body>
+</html>
