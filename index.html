@@ -428,7 +428,10 @@
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <span class="lightbox-close">✕</span>
-  <img id="lightbox-img" src="" alt="">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+    <img id="lightbox-img" src="" alt="">
+    <div id="lightbox-caption" style="font-family:var(--mono);font-size:11px;color:var(--slate);letter-spacing:1px;text-align:center;display:none"></div>
+  </div>
 </div>
 
 <script>
@@ -619,9 +622,13 @@ function renderOverviewTab(p, curTab) {
 function renderPhotosTab(p, curTab) {
   const photos = p.photos || [];
   const thumbs = photos.map(ph => `
-    <div class="photo-thumb" onclick="openLightbox('${ph.data}');event.stopPropagation()">
-      <img src="${ph.data}" alt="">
-      <div class="photo-tag ${ph.type||''}">${(ph.type||'photo').toUpperCase()}</div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="photo-thumb" onclick="openLightbox('${ph.data}','${(ph.caption||'').replace(/'/g,"\\'")}');event.stopPropagation()">
+        <img src="${ph.data}" alt="">
+        <div class="photo-tag ${ph.type||''}">${(ph.type||'photo').toUpperCase()}</div>
+        <button onclick="deletePhoto('${p.id}','${ph.id}');event.stopPropagation()" style="position:absolute;top:4px;right:4px;background:rgba(10,15,30,0.75);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0" title="Delete photo">✕</button>
+      </div>
+      <input type="text" placeholder="Caption..." value="${ph.caption||''}" onclick="event.stopPropagation()" onchange="updatePhotoCaption('${p.id}','${ph.id}',this.value)" style="width:100%;background:var(--navy3);border:1px solid var(--navy4);border-radius:3px;padding:3px 6px;color:var(--slate);font-family:var(--mono);font-size:9px;letter-spacing:0.5px;box-sizing:border-box">
     </div>`).join('');
 
   return `
@@ -775,17 +782,57 @@ document.getElementById('f-cat').addEventListener('change', updateProHint);
 function handlePhotoUpload(projectId, input, type) {
   const file = input.files[0];
   if (!file) return;
+
+  // Compress image before saving to avoid localStorage limits
+  const img = new Image();
   const reader = new FileReader();
   reader.onload = e => {
-    const data = load();
-    const p = data.projects.find(x => x.id === projectId);
-    if (!p) return;
-    p.photos = p.photos || [];
-    p.photos.push({ id: uid(), data: e.target.result, type, date: new Date().toISOString().slice(0,10) });
-    save(data); renderProjects();
+    img.onload = () => {
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+      const data = load();
+      const p = data.projects.find(x => x.id === projectId);
+      if (!p) return;
+      p.photos = p.photos || [];
+      p.photos.push({ id: uid(), data: dataUrl, type, date: new Date().toISOString().slice(0,10), caption: '' });
+      save(data);
+
+      // Keep project expanded and on photos tab
+      expandedProjects.add(projectId);
+      activeTab[projectId] = 'photos';
+      renderProjects();
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
   input.value = '';
+}
+
+function deletePhoto(projectId, photoId) {
+  if (!confirm('Delete this photo?')) return;
+  const data = load();
+  const p = data.projects.find(x => x.id === projectId);
+  if (!p) return;
+  p.photos = (p.photos || []).filter(ph => ph.id !== photoId);
+  save(data); renderProjects();
+}
+
+function updatePhotoCaption(projectId, photoId, caption) {
+  const data = load();
+  const p = data.projects.find(x => x.id === projectId);
+  if (!p) return;
+  const ph = (p.photos || []).find(ph => ph.id === photoId);
+  if (ph) ph.caption = caption;
+  save(data);
 }
 
 function addLogEntry(projectId) {
@@ -809,7 +856,13 @@ function deleteLogEntry(projectId, entryId) {
   save(data); renderProjects();
 }
 
-function openLightbox(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox').classList.add('open'); }
+function openLightbox(src, caption) {
+  document.getElementById('lightbox-img').src = src;
+  const cap = document.getElementById('lightbox-caption');
+  if (caption) { cap.textContent = caption; cap.style.display = 'block'; }
+  else { cap.textContent = ''; cap.style.display = 'none'; }
+  document.getElementById('lightbox').classList.add('open');
+}
 function closeLightbox()    { document.getElementById('lightbox').classList.remove('open'); }
 
 document.getElementById('project-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
