@@ -788,7 +788,7 @@ function handlePhotoUpload(projectId, input, type) {
   const reader = new FileReader();
   reader.onload = e => {
     img.onload = () => {
-      const MAX = 1200;
+      const MAX = 600;
       let w = img.width, h = img.height;
       if (w > MAX || h > MAX) {
         if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
@@ -797,14 +797,20 @@ function handlePhotoUpload(projectId, input, type) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
 
       const data = load();
       const p = data.projects.find(x => x.id === projectId);
       if (!p) return;
       p.photos = p.photos || [];
       p.photos.push({ id: uid(), data: dataUrl, type, date: new Date().toISOString().slice(0,10), caption: '' });
-      save(data);
+      try {
+        save(data);
+      } catch(e) {
+        p.photos.pop();
+        alert('Storage full — unable to save photo. Try deleting some existing photos to free up space.');
+        return;
+      }
 
       // Keep project expanded and on photos tab
       expandedProjects.add(projectId);
